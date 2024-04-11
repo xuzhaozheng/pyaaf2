@@ -2,6 +2,9 @@ import uuid
 import struct
 import traceback
 
+LOCAL_SET_PREFIX = bytearray([0x06, 0x0e, 0x2b, 0x34, 0x02, 0x53])
+CLASS_ID_PREFIX  = bytearray([0x06, 0x0e, 0x2b, 0x34, 0x02, 0x06])
+
 class AUID(object):
     """
     A higher performance UUID class that is more specialized for AAF.
@@ -29,6 +32,57 @@ class AUID(object):
         else:
             raise TypeError('one of the hex, bytes_le, bytes_be '
                             'or int arguments must be given')
+
+    @staticmethod
+    def from_mxf_label(klv_data):
+        klv_data = bytearray(klv_data)
+        a = AUID(bytes_le=bytearray(16))
+        a.bytes_le[8:] = klv_data[:8]
+
+        d1 = 0
+        d1 += klv_data[8] << 24
+        d1 += klv_data[9] << 16
+        d1 += klv_data[10] << 8
+        d1 += klv_data[11]
+        a.data1 = d1
+
+        d2 = 0
+        d2 += klv_data[12] << 8
+        d2 += klv_data[13]
+        a.data2 = d2
+
+        d3 = 0
+        d3 += klv_data[14] << 8
+        d3 += klv_data[15]
+        a.data3 = d3
+
+        if klv_data[:6] == LOCAL_SET_PREFIX:
+            a.bytes_le[13] = 0x06
+
+        return a
+
+    def to_mxf_label(self):
+        key = bytearray(16)
+        key[0:8] = self.bytes_le[8:]
+
+        d1 = self.data1
+        key[8]  = (d1 >> 24) & 0xFF
+        key[9]  = (d1 >> 16) & 0xFF
+        key[10] = (d1 >> 8)  & 0xFF
+        key[11] = d1 & 0xFF
+
+        d2 = self.data2
+        key[12] = (d2 >> 8) & 0xFF
+        key[13] = d2 & 0xFF
+
+        d3 = self.data3
+        key[14] = (d3 >> 8)  & 0xFF
+        key[15] = d3 & 0xFF
+
+        if key[:6] == CLASS_ID_PREFIX:
+            key[5] = 0x53
+
+        return key
 
     @property
     def bytes_be(self):
@@ -84,17 +138,29 @@ class AUID(object):
         value += self.bytes_le[3] << 24
         return value
 
+    @data1.setter
+    def data1(self, value):
+        self.bytes_le[0:4] = struct.pack(b"<I", value)
+
     @property
     def data2(self):
         value  = self.bytes_le[4]
         value += self.bytes_le[5] << 8
         return value
 
+    @data2.setter
+    def data2(self, value):
+        self.bytes_le[4:6] = struct.pack(b"<H", value)
+
     @property
     def data3(self):
         value  = self.bytes_le[6]
         value += self.bytes_le[7] << 8
         return value
+
+    @data3.setter
+    def data3(self, value):
+        self.bytes_le[6:8] = struct.pack(b"<H", value)
 
     @property
     def data4(self):
