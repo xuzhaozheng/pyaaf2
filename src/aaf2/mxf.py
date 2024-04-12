@@ -833,14 +833,22 @@ class MXFTaggedValue(MXFObject):
         return tag
 
 def ber_length(f):
-    length = read_u8(f)
-    if length > 127:
-        data = bytearray(length - 128)
-        bytes_read = f.readinto(data)
-        assert bytes_read == len(data)
-        length = int_from_bytes(data, byte_order='big')
-    return length
+    b = read_u8(f)
+    if b == 0x80:
+        # unknown length
+        result = 0
+    elif b & 0x80 != 0x80:
+        # short form
+        result = b
+    else:
+        # long form
+        length = b & 0x7f
+        result = 0
+        for _ in range(length):
+            b = read_u8(f)
+            result = (result << 8) + b
 
+    return result
 
 def iter_kl(f):
     pos = f.tell()
