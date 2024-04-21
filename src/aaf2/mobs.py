@@ -19,6 +19,7 @@ from .rational import AAFRational
 from .auid import AUID
 from .components import SourceReference
 
+sentinel = object()
 
 @register_class
 class Mob(core.AAFObject):
@@ -80,11 +81,13 @@ class Mob(core.AAFObject):
     def slots(self):
         return self['Slots']
 
-    def slot_at(self, slot_id):
+    def slot_at(self, slot_id, default_value=sentinel):
         for slot in self.slots:
             if slot.slot_id == slot_id:
                 return slot
-        raise IndexError("No SlotID: %s" % str(slot_id))
+        if default_value is sentinel:
+            raise IndexError("No SlotID: %s" % str(slot_id))
+        return default_value
 
     def create_timeline_slot(self, edit_rate, slot_id=None):
         slots = [slot.slot_id for slot in self.slots]
