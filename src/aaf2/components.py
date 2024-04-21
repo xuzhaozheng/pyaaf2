@@ -171,6 +171,28 @@ class SourceReference(Segment):
     def slot(self, value):
         self.slot_id = value.slot_id
 
+    def slots(self):
+        """
+            A SourceReference can have multiple MobSlot references
+            if it contains the 'MonoSourceSlotIDs' property.
+            Returns a list of the MobSlot objects referenced
+            by either SourceMobSlotID or MonoSourceSlotIDs properties.
+            MobSlots that cannot be resolved will have a value of None.
+        """
+
+        if 'MonoSourceSlotIDs' in self:
+            slot_ids = self['MonoSourceSlotIDs'].value
+        else:
+            slot_id = self.slot_id
+            if slot_id is None:
+                return [None]
+            slot_ids = [slot_id]
+
+        mob = self.mob
+        if mob is None:
+            return [None for _ in slot_ids]
+
+        return [mob.slot_at(slot_id, None) for slot_id in slot_ids]
 
 @register_class
 class SourceClip(SourceReference):

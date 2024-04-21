@@ -117,9 +117,9 @@ class TreeItem(object):
             mob = item.mob
             if mob:
                 self.extend([mob])
-            slot = item.slot
-            if slot:
-                self.extend([slot])
+            for slot in item.slots():
+                if slot:
+                    self.extend([slot])
 
 
         self.properties['Name'] = self.name()
